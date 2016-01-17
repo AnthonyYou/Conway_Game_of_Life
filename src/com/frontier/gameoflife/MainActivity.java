@@ -24,21 +24,20 @@ import android.widget.TextView;
 
 public class MainActivity extends Activity implements Callback, OnTouchListener {
 
-	private static final int defaultMapWidth = 50;
+	private static final int defaultMapWidth = 160;
 
 	private SurfaceView mainView;
 	private SurfaceHolder sh;
 
 	private ImageView settingBtn;
+	private TextView generationCount;
 	private TextView aliveCount;
 
-	private int totalAliveCount;
+	private int totalAliveCount, generations;
 
 	private float cellWidth, cellHeight;
 	private int mapWidth = defaultMapWidth;
 	private int mapHeight;
-
-	private int screenWidth, screenHeight;
 
 	private Paint gridPaint, cellPaint;
 
@@ -48,6 +47,11 @@ public class MainActivity extends Activity implements Callback, OnTouchListener 
 
 	private Handler generateHandler;
 
+	private float menuDownX;
+	private float menuDownY;
+	private float menuStartTranslateX, menuStartTranslateY;
+	private boolean isMoveMenu = false;
+
 	private Handler mainHandler = new Handler() {
 
 		@Override
@@ -56,6 +60,8 @@ public class MainActivity extends Activity implements Callback, OnTouchListener 
 			case 0:
 				aliveCount.setText(String.format(
 						getString(R.string.alive_count), totalAliveCount));
+				generationCount.setText(String.format(
+						getString(R.string.generation_count), generations));
 			}
 		}
 
@@ -77,6 +83,14 @@ public class MainActivity extends Activity implements Callback, OnTouchListener 
 		deadCells = new Vector<Point>();
 	}
 
+	@Override
+	protected void onDestroy() {
+		if (generateHandler != null) {
+			generateHandler.sendEmptyMessage(0);
+		}
+		super.onDestroy();
+	}
+
 	private void startGenerateThread() {
 		new Thread(new Runnable() {
 
@@ -91,11 +105,12 @@ public class MainActivity extends Activity implements Callback, OnTouchListener 
 						switch (msg.what) {
 						case 0: // exit thread
 							Looper.myLooper().quit();
+							generateHandler = null;
 							break;
 						case 1: // next generation
 							generate();
 							drawWorld();
-							generateHandler.sendEmptyMessageDelayed(1, 300);
+							generateHandler.sendEmptyMessageDelayed(1, 50);
 							break;
 						}
 					}
@@ -116,17 +131,44 @@ public class MainActivity extends Activity implements Callback, OnTouchListener 
 		mainView.setOnTouchListener(this);
 
 		settingBtn = (ImageView) findViewById(R.id.setting_btn);
-		settingBtn.setOnClickListener(new OnClickListener() {
+		settingBtn.setOnTouchListener(new OnTouchListener() {
 
 			@Override
-			public void onClick(View v) {
-				generateHandler.sendEmptyMessage(1);
+			public boolean onTouch(View v, MotionEvent event) {
+				switch (event.getAction()) {
+				case MotionEvent.ACTION_DOWN:
+					menuDownX = event.getRawX();
+					menuDownY = event.getRawY();
+					menuStartTranslateX = settingBtn.getX();
+					menuStartTranslateY = settingBtn.getY();
+					break;
+				case MotionEvent.ACTION_MOVE:
+					if(!isMoveMenu) {
+						if (Math.abs(event.getX() - menuDownX) > 5
+								|| Math.abs(event.getY() - menuDownY) > 5) {
+							isMoveMenu = true;
+						}
+					}
+					settingBtn.setX(menuStartTranslateX + event.getRawX() - menuDownX);
+					settingBtn.setY(menuStartTranslateY + event.getRawY() - menuDownY);
+					break;
+				case MotionEvent.ACTION_UP:
+					isMoveMenu = false;
+					break;
+				case MotionEvent.ACTION_CANCEL:
+					break;
+				}
+				return true;
 			}
 
 		});
 
 		aliveCount = (TextView) findViewById(R.id.alive_count);
 		aliveCount.setText(String.format(getString(R.string.alive_count), 0));
+
+		generationCount = (TextView) findViewById(R.id.generation_count);
+		generationCount.setText(String.format(
+				getString(R.string.generation_count), 0));
 	}
 
 	private void calcCellWidth() {
@@ -136,9 +178,6 @@ public class MainActivity extends Activity implements Callback, OnTouchListener 
 		cellHeight = dm.heightPixels / (float) mapHeight;
 
 		cells = new byte[mapWidth][mapHeight];
-
-		screenWidth = dm.widthPixels;
-		screenHeight = dm.heightPixels;
 	}
 
 	@Override
@@ -176,13 +215,13 @@ public class MainActivity extends Activity implements Callback, OnTouchListener 
 	private void drawMapGrid(Canvas canvas) {
 		canvas.drawColor(Color.LTGRAY);
 		for (int i = 0; i < mapHeight; ++i) {
-			canvas.drawLine(0, cellHeight * i, screenWidth, cellHeight * i,
-					gridPaint);
+			canvas.drawLine(0, cellHeight * i, mainView.getMeasuredWidth(),
+					cellHeight * i, gridPaint);
 		}
 
 		for (int i = 0; i < mapWidth; ++i) {
-			canvas.drawLine(cellWidth * i, 0, cellWidth * i, screenHeight,
-					gridPaint);
+			canvas.drawLine(cellWidth * i, 0, cellWidth * i,
+					mainView.getMeasuredHeight(), gridPaint);
 		}
 	}
 
@@ -283,6 +322,7 @@ public class MainActivity extends Activity implements Callback, OnTouchListener 
 			cells[point.x][point.y] = 0;
 		}
 		totalAliveCount += bornCells.size() - deadCells.size();
+		++generations;
 		mainHandler.sendEmptyMessage(0);
 	}
 
@@ -293,9 +333,9 @@ public class MainActivity extends Activity implements Callback, OnTouchListener 
 		case MotionEvent.ACTION_MOVE:
 			int mapX = (int) (event.getX() / cellWidth);
 			int mapY = (int) (event.getY() / cellHeight);
-			if(mapX >= 0 && mapX < mapWidth && mapY > 0 && mapY < mapHeight) {
+			if (mapX >= 0 && mapX < mapWidth && mapY > 0 && mapY < mapHeight) {
 				if (cells[mapX][mapY] == 0) {
-					++ totalAliveCount;
+					++totalAliveCount;
 					mainHandler.sendEmptyMessage(0);
 				}
 				cells[mapX][mapY] = 1;

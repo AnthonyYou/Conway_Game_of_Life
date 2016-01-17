@@ -2,4 +2,6 @@
 
     <string name="app_name">GameOfLife</string>
 
+    <string name="alive_count">Alive:%d</string>
+    <string name="generation_count">Generation:%d</string>
 </resources>

@@ -17,6 +17,14 @@
         android:src="@drawable/setting" />
     
     <TextView 
+        android:id="@+id/generation_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_toLeftOf="@+id/alive_count"
+        android:textColor="#ff00ff00"
+        android:layout_margin="10dp"/>
+    <TextView 
         android:id="@+id/alive_count"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
