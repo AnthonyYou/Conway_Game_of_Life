@@ -50,7 +50,6 @@ public class MainActivity extends Activity implements Callback, OnTouchListener 
 	private float menuDownX;
 	private float menuDownY;
 	private float menuStartTranslateX, menuStartTranslateY;
-	private boolean isMoveMenu = false;
 
 	private Handler mainHandler = new Handler() {
 
@@ -131,36 +130,13 @@ public class MainActivity extends Activity implements Callback, OnTouchListener 
 		mainView.setOnTouchListener(this);
 
 		settingBtn = (ImageView) findViewById(R.id.setting_btn);
-		settingBtn.setOnTouchListener(new OnTouchListener() {
+		settingBtn.setOnClickListener(new OnClickListener(){
 
 			@Override
-			public boolean onTouch(View v, MotionEvent event) {
-				switch (event.getAction()) {
-				case MotionEvent.ACTION_DOWN:
-					menuDownX = event.getRawX();
-					menuDownY = event.getRawY();
-					menuStartTranslateX = settingBtn.getX();
-					menuStartTranslateY = settingBtn.getY();
-					break;
-				case MotionEvent.ACTION_MOVE:
-					if(!isMoveMenu) {
-						if (Math.abs(event.getX() - menuDownX) > 5
-								|| Math.abs(event.getY() - menuDownY) > 5) {
-							isMoveMenu = true;
-						}
-					}
-					settingBtn.setX(menuStartTranslateX + event.getRawX() - menuDownX);
-					settingBtn.setY(menuStartTranslateY + event.getRawY() - menuDownY);
-					break;
-				case MotionEvent.ACTION_UP:
-					isMoveMenu = false;
-					break;
-				case MotionEvent.ACTION_CANCEL:
-					break;
-				}
-				return true;
+			public void onClick(View v) {
+				generateHandler.sendEmptyMessage(1);
 			}
-
+			
 		});
 
 		aliveCount = (TextView) findViewById(R.id.alive_count);
